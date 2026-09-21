@@ -7,15 +7,15 @@
 
 ```bash
 # 评论：list → reply/like/hide/delete（video-id = 发布记录的 postId）
-haina comments list --account <id> --video-id <postId> --json
-haina comments reply --account <id> --video-id <postId> --comment-id <cid> --text "回复" --json
+haina tt comment list --account <id> --video-id <postId> --json
+haina tt comment reply --account <id> --video-id <postId> --comment-id <cid> --text "回复" --json
 
 # 私信：conversations（拿 conversationId）→ list/send
-haina messages conversations --account <id> --type SINGLE --json
-haina messages send --account <id> --conversation-id <cid> --text "你好" --json
+haina tt message conversations --account <id> --type SINGLE --json
+haina tt message send --account <id> --conversation-id <cid> --text "你好" --json
 
 # 自动消息：get 查现状（含审核状态）→ create/update/status
-haina messages auto get --account <id> --type WELCOME_MESSAGE --json
+haina tt message auto get --account <id> --type WELCOME_MESSAGE --json
 ```
 
 # 评论规则
@@ -33,7 +33,7 @@ haina messages auto get --account <id> --type WELCOME_MESSAGE --json
 
 - `status` 过滤：`PUBLIC`（仅公开）/ `ALL`（默认，含隐藏）。
 - `maxCount` ≤30；`commentIds` 精确过滤 ≤30 个；`includeReplies=true` 时每条顶层评论附带 ≤3 条回复。
-- **`videoId` 必须是官方数字 postId**（发布成功约 3 分钟后从 `publish status` 拿到），不是 vidgate 视频库 uuid——传错返回 `request.VideoId expected int`。
+- **`videoId` 必须是官方数字 postId**（发布成功约 3 分钟后从 `publish status` 拿到），不是平台视频库 uuid——传错返回 `request.VideoId expected int`。
 - 事件延迟：评论 webhook 事件官方上限约 **5 分钟**（实测秒级）。
 - 事件里没有 `owner` 字段（评论者身份只看 username）；机器人防自回环：只回复 `parentCommentId == null/0` 的顶层评论。
 
@@ -41,7 +41,7 @@ haina messages auto get --account <id> --type WELCOME_MESSAGE --json
 
 评论 API 需 `comment.list` / `comment.list.manage` scope（绑定授权已含）。
 
-> 权威来源：`docs/official/tiktok/organic-api/accounts_api/comments/`。
+> 来源：TikTok 官方文档（Accounts API › Comments 章节）。
 
 # 私信规则
 
@@ -50,6 +50,7 @@ haina messages auto get --account <id> --type WELCOME_MESSAGE --json
 私信 API（会话/消息读取、发送、媒体）需要 TikTok 对开发者应用的**高级权限审查**（数据安全与隐私审核）。未获批时调用返回 `40001 User is not eligible for the Advanced Access tier`。
 
 > 注意边界：**接收私信的 webhook 事件不需要该权限**（事件含正文，近实时）。被卡的只是主动调用面（翻历史/回复/发图）。
+> 官方错误码并不统一：自动消息（auto_message）面实测还会返回 401 / 405。这类错误一律按透传的官方 message 处理，不要按错误码自行分支。
 
 ## 发送窗口（非互关会话，官方硬控）
 
@@ -102,4 +103,4 @@ haina messages auto get --account <id> --type WELCOME_MESSAGE --json
 - direct_reply（评论转私信）仅限越南/印尼/泰国注册账号（本期未开放）。
 - `conversation_id` 可能含 `+` 字符，拼 URL 时注意编码（`%2B`）。
 
-> 权威来源：`docs/official/tiktok/business_messaging_api/`。
+> 来源：TikTok 官方文档（Business Messaging API）。

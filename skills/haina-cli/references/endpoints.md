@@ -15,7 +15,7 @@
 
 ## 视频库
 
-> 视频上传 / 列表 / 详情 / 删除（TT/TTS 公用）
+> 视频与图片素材：上传 / 列表 / 详情 / 删除（TikTok / TikTok Shop 公用）
 
 ### POST /v1/videos
 
@@ -36,6 +36,15 @@
 视频列表（游标分页）
 
 - ⚠ 已软删的记录仍保留在列表中（`status=expired`，审计留痕）——判断视频是否可用请看 `status`，不要以「列表里还有没有」判断删除是否生效
+
+### POST /v1/images
+
+上传图片素材（TikTok 视频自定义封面 / 图片帖供源）
+
+- 必填 body（multipart）：file
+- 必填 body：sourceUrl
+- ⚠ **application/json**：传 `{ "sourceUrl": "..." }`，由平台从该公网 URL 拉取（私网/环回地址拒绝，2001；重定向最多 5 次）
+- ⚠ 文件限制：JPG/JPEG/PNG/WebP，≤20MB（官方封面与图片帖约束的交集）
 
 ### GET /v1/videos/{id}
 
@@ -70,10 +79,13 @@
 
 ### POST /v1/tiktok/v1.3/business/video/publish
 
-TT 视频发布·新版（默认推荐；对齐官方 POST /open_api/v1.3/business/video/publish/）
+TikTok 视频帖子发布·新版（默认推荐；对齐官方 POST /open_api/v1.3/business/video/publish/）
 
 - 必填 body：videoUrl、account
 - ⚠ `videoUrl` 需为视频库已登记的 URL（`POST /v1/videos` 响应原值，7 天有效期校验同旧版）
+- ⚠ **BGM（可选）**：挂官方商用音乐（CML）用 `musicSoundInfo.musicSoundId`——值必须是 `GET /v1/tiktok/v1.3/discovery/cml/trending_list` 响应里的 `trendingSongClip.songClipId` 或 `fullDurationSongClip.songClipId`，**勿传 `commercialMusicId`**（曲目 id，只能用于 `cml/video_list` 查关联视频）
+- ⚠ 音量坑：官方两个音量默认都是 0（静音），App 内默认 50——传了音乐但未给音量时，平台自动补 `musicSoundVolume=50` + `videoOriginalSoundVolume=50`（显式传 0 以你为准）；要保留视频原声（口播人声）必须让 `videoOriginalSoundVolume` > 0
+- ⚠ 注意：CML 是商用音乐库，热门版权流行歌不对 Business 账号开放（App 内也一样）；要流行歌只能发草稿（`upload_to_draft`）后在 App 内手动加
 
 ### POST /v1/tiktok/v1.3/business/photo/publish
 
@@ -83,15 +95,37 @@ TT 视频发布·新版（默认推荐；对齐官方 POST /open_api/v1.3/busine
 - ⚠ `photoUrls`：1-35 张公网 https 图片（每张 ≤20MB，JPG/JPEG/WebP）
 - ⚠ `privacyLevel` 必填；可用档位以 `GET business/video/settings` 返回的 `privacy_level_options` 为准
 - ⚠ 配额硬限：每账号 6 帖/分钟、15 帖/天（与视频同额；官方控制，报错透传）
+- ⚠ 指定 BGM（可选）：`musicSoundId` 传 CML 曲目 clip id（`trending_list` 响应的 `songClipId`，勿传 `commercialMusicId`）；`autoAddMusic` 为官方自动配乐——二选一
 
 ### GET /v1/tiktok/v1.3/business/publish/status
 
-TT 发布状态刷新（对应官方 GET /open_api/v1.3/business/publish/status/）
+TikTok 发布状态刷新（对应官方 GET /open_api/v1.3/business/publish/status/）
 
 - 必填参数：publishId（query）
 - ⚠ `publishId` 命中你的发布记录时（常规轮询场景）：只需传 `publishId`——平台自动完成归属校验、拉取官方最新状态并**回写你的发布记录**；响应为归一化结构 `{ publishId, shareId, status, postId, tiktok }`（`status` 已归一小写，`tiktok` 为官方原始响应）
 - ⚠ 建议每 5–10 秒轮询、最多约 30 次；到达终态（`publish_complete` / `publish_failed` / `beervid_error`）即停止
 - ⚠ `postId`（TikTok item_id）官方数据处理可能延迟约 3 分钟——刚发布成功未拿到时稍后重查
+
+## TikTok 发现
+
+> TikTok Discovery（CML 商用音乐库选曲等）：与官方 /open_api/v1.3/discovery/** 路径纯前缀替换对应
+
+### GET /v1/tiktok/v1.3/discovery/cml/trending_list
+
+CML 热门商用音乐（对应官方 GET /open_api/v1.3/discovery/cml/trending_list/）
+
+- 必填参数：account（query）
+- ⚠ TikTok 官方商用音乐库（CML）热门曲目选曲——给视频/图片帖发布选 BGM 用（返回 ≤100 条）
+- ⚠ **发布要用 `songClipId`，勿用 `commercialMusicId`**：每条曲目的 `trendingSongClip.songClipId`（近 30 天最热剪辑）/ `fullDurationSongClip.songClipId`（完整曲目）才是发布接口的 `musicSoundId` 入参；`commercialMusicId` 是曲目 id，只能用于 `cml/video_list` 查关联热门视频
+- ⚠ `previewUrl` 为不过期的试听地址；`duration` 单位为秒（剪辑曲目可能为 0）
+- ⚠ 注意：CML ≠ App 流行曲库——热门版权流行歌不可用于 Business 账号（App 内也一样）；要流行歌只能发草稿后在 App 内手动加
+- ⚠ 官方限流：Discovery API 全端点共享 10 QPS/开发者应用，勿高频轮询
+
+### GET /v1/tiktok/v1.3/discovery/cml/video_list
+
+CML 曲目关联热门视频（对应官方 GET /open_api/v1.3/discovery/cml/video_list/）
+
+- 必填参数：account（query）、commercialMusicId（query）
 
 ## 发布状态与记录
 
@@ -99,7 +133,7 @@ TT 发布状态刷新（对应官方 GET /open_api/v1.3/business/publish/status/
 
 ### GET /v1/publish/tiktok/status
 
-TT 发布状态刷新（每次调用即拉取官方最新状态并同步到你的发布记录）
+TikTok 发布状态刷新（每次调用即拉取官方最新状态并同步到你的发布记录）
 
 - 必填参数：shareId（query）
 - ⚠ **将要废弃**（1.6.x 移除，移除前功能不受影响）：请迁移到新版端点 `GET /v1/tiktok/v1.3/business/publish/status`（`publishId` 传本接口的 `shareId` 即可——命中发布记录时行为与本接口完全一致：归属校验 + 回写记录 + 归一化响应）
@@ -109,7 +143,7 @@ TT 发布状态刷新（每次调用即拉取官方最新状态并同步到你�
 
 ### GET /v1/publish/stats
 
-TT 视频数据回收（views/likes/comments/shares…）
+TikTok 视频数据回收（views/likes/comments/shares…）
 
 - 必填参数：itemId（query）
 - ⚠ **将要废弃**（1.6.x 移除，移除前功能不受影响）：请改用「数据洞察」面的 `GET /v1/tiktok/v1.3/business/video/list`（`videoIds` 传 postId）——功能与官方接口路由一致，字段更多（官方原样字段，可用 `fields` 自选）
@@ -129,10 +163,10 @@ TT 视频数据回收（views/likes/comments/shares…）
 
 ### POST /v1/publish/tiktok
 
-TT 发布（公网 URL 直发）
+TikTok 视频帖子发布（公网 URL 直发）
 
 - 必填 body：videoUrl、accountId
-- ⚠ 把视频库中的 TT 视频发布到 TikTok——TikTok 会自行下载你传入的公网 URL，无需你的服务器在线
+- ⚠ 把视频库中的视频发布到 TikTok——TikTok 会自行下载你传入的公网 URL，无需你的服务器在线
 - ⚠ **将要废弃**（1.6.x 移除，移除前功能不受影响）：请迁移到新版 `POST /v1/tiktok/v1.3/business/video/publish`（参数、返回、状态轮询完全同口径，平滑切换）
 - ⚠ `videoUrl` 必须是 `POST /v1/videos` 响应的原值——平台会校验该 URL 属于你的视频库且在 7 天有效期内（查无 1005，过期 2005）
 - ⚠ 官方限制：每个 TikTok 账号每分钟最多 6 个、每天最多 15 个视频
@@ -140,11 +174,11 @@ TT 发布（公网 URL 直发）
 
 ## 商品拉取
 
-> TTS 可挂车商品拉取（店铺 + 橱窗）
+> TikTok Shop 可挂车商品拉取（店铺 + 橱窗）
 
 ### POST /v1/products/query
 
-TTS 商品拉取（shop/showcase 分组游标）
+TikTok Shop 商品拉取（shop/showcase 分组游标）
 
 - 必填 body：accountId
 - ⚠ `productType` 省略时店铺+橱窗两组都返回；**两组游标互相独立，翻页必须在单类型下进行**
@@ -152,11 +186,11 @@ TTS 商品拉取（shop/showcase 分组游标）
 
 ## TikTok Shop 挂车
 
-> TikTok Shop 挂车发布（TTS）：发布 / 状态轮询 / 预审（可选）/ 封面上传 / 音乐搜索
+> TikTok Shop 挂车视频：发布 / 状态轮询 / 预审（可选）/ 封面上传 / 音乐搜索
 
 ### POST /v1/photos
 
-上传 TTS 封面图（multipart 直传 / JSON URL 取流）→ photoUri
+上传 TikTok Shop 封面图（multipart 直传 / JSON URL 取流）→ photoUri
 
 - 必填 body（multipart）：file、accountId
 - 必填 body：sourceUrl、accountId
@@ -164,7 +198,7 @@ TTS 商品拉取（shop/showcase 分组游标）
 
 ### POST /v1/music/search
 
-TTS 电商授权音乐搜索（BGM）
+TikTok Shop 电商授权音乐搜索（BGM）
 
 - 必填 body：accountId、keyword
 - ⚠ 第 2 页起必须同时带上同一个 `searchId` + 上一页的 `nextPageToken`，否则翻页可能失败
@@ -173,7 +207,7 @@ TTS 电商授权音乐搜索（BGM）
 
 ### POST /v1/publish/tts/precheck
 
-TTS 预审提交（可选工具；官方 Pre-check Shoppable Video）
+TikTok Shop 预审提交（可选工具；官方 Pre-check Shoppable Video）
 
 - 必填 body：fileId、accountId、productId
 - 条件必填：productTitle（商品锚点文案（官方必填：≤30 字符、不含标点和 emoji；缺失/违规由官方校验报错））
@@ -183,14 +217,14 @@ TTS 预审提交（可选工具；官方 Pre-check Shoppable Video）
 
 ### GET /v1/publish/tts/precheck/{taskId}
 
-TTS 预审结果查询（按官方 taskId）
+TikTok Shop 预审结果查询（按官方 taskId）
 
 - 必填参数：taskId（path）
 - ⚠ `violationCheckResult` FAIL = 内容违规（官方建议不要发布，是否发布由你决策）
 
 ### POST /v1/publish/tts
 
-TTS 挂车发布（对齐官方 Post Shoppable Video）
+TikTok Shop 挂车视频发布（对齐官方 Post Shoppable Video）
 
 - 必填 body：fileId、accountId、productId
 - 条件必填：title（视频标题/文案（caption），官方必填（缺省官方报 3001「Title of VideoInfo is a required field」；网关不预检、缺省时透传官方报错，CLI 已本地必填拦截）；支持 #话题 和 @提及；长度与内容由官方校验）
@@ -201,12 +235,12 @@ TTS 挂车发布（对齐官方 Post Shoppable Video）
 
 ### GET /v1/publish/tts/status
 
-TTS 发布状态刷新（每次调用即拉取官方最新状态并同步到你的发布记录）
+TikTok Shop 发布状态刷新（每次调用即拉取官方最新状态并同步到你的发布记录）
 
 - 必填参数：videoId（query）
 - ⚠ 官方无 webhook，轮询是获取终态的唯一路径
 - ⚠ 口径注意：`GET /v1/publish/records` 里的 `shareId` 字段就是这个官方 video_id（可用于本接口）；records 的 `videoId` 是平台视频库 ID，**不能**用于本接口（必 1005）
-- ⚠ 无需传 `accountId`：平台按 videoId 反查发布记录自动带出（查无/非本人 → 1005；误传 TT 记录 → 2001）
+- ⚠ 无需传 `accountId`：平台按 videoId 反查发布记录自动带出（查无/非本人 → 1005；误传 TikTok 发布记录 → 2001）
 - ⚠ 建议每 5–10 秒轮询、最多约 30 次；到达终态（`publish_complete` / `publish_failed`）即停止
 
 ## 数据洞察
@@ -386,7 +420,7 @@ TTS 发布状态刷新（每次调用即拉取官方最新状态并同步到你�
 - 必填 body：account、autoMessageType、operationStatus
 - ⚠ WELCOME_MESSAGE 的唯一关闭方式（不可删除）
 
-## Events
+## 事件流
 
 > 事件流拉取（webhook push 的对账兜底）
 
@@ -406,7 +440,7 @@ SSE 实时事件流（listen 通道，无公网环境的接收方式）
 
 - 必填参数：id（path）
 
-## Webhook Endpoints
+## 推送端点
 
 > 事件推送端点管理（secret 仅创建时返回一次，用于验签）
 

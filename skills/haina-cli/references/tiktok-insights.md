@@ -6,10 +6,10 @@
 ## 速查流程
 
 ```bash
-haina insights account --account <id> --json                      # 账号概览
-haina insights videos --account <id> --json                       # 视频列表指标（游标分页）
-haina insights videos --account <id> --video-ids <postId> --json  # 定点查（发布数据回收）
-haina insights video-settings --account <id> --json               # 发布前自检（隐私档位/时长上限）
+haina tt insight account --account <id> --json                      # 账号概览
+haina tt insight videos --account <id> --json                       # 视频列表指标（游标分页）
+haina tt insight videos --account <id> --video-ids <postId> --json  # 定点查（发布数据回收）
+haina tt insight video-settings --account <id> --json               # 发布前自检（隐私档位/时长上限）
 ```
 
 ## 字段权限分级（scope）
@@ -22,7 +22,7 @@ haina insights video-settings --account <id> --json               # 发布前自
 | 视频基础字段（item_id/create_time/share_url/caption 等） | `video.list` |
 | 视频深度指标（reach/完播率/受众分布等） | `video.insights` |
 
-vidgate 绑定授权 URL 已含全部所需 scope，正常绑定即可用；缺权限时官方报错透传。
+绑定授权 URL 已含全部所需 scope，正常绑定即可用；缺权限时官方报错透传。
 
 ## 数据门槛与延迟（诚实口径）
 
@@ -39,4 +39,4 @@ vidgate 绑定授权 URL 已含全部所需 scope，正常绑定即可用；缺�
 - `insights account`：`--start-date/--end-date`（UTC，回溯 ≤60 天）才有 `metrics` 日序列。
 - `insights benchmark`：25 个行业类目枚举（如 `BEAUTY`），返回该行业 8 项平均值（点赞/评论/分享/粉丝数/粉丝增长/互动率/播放量/发帖数）。
 
-> 权威来源：`docs/official/tiktok/organic-api/accounts_api/insights/`。
+> 来源：TikTok 官方文档（Accounts API › Insights 章节）。

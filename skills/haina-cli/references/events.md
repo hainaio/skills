@@ -37,20 +37,20 @@ TikTok 域：`tiktok.comment.created/deleted/visibility_changed/updated`、`tikt
 
 - 私信事件近实时；
 - 评论事件官方上限约 **5 分钟**（实测秒级）；
-- vidgate 保证"收到后秒级分发"，平台侧投递延迟不在我方 SLA 内。
+- 平台保证「收到后秒级分发」；官方侧的投递延迟不在本平台 SLA 内。
 
 ## 事件触发面
 
 - 评论事件覆盖：API 发布与手动发布的帖子、**自己账号发出的评论也会触发**（官方不过滤 owner）；
 - 私信事件：`im_receive_msg`（收到）/ `im_send_msg`（发出，含 App 内手动发送）/ `im_referral_msg`；
-- 发布事件：`post.publish.*` 覆盖 API 发布的帖子（含 `publish.live` 携带 post_id，vidgate 自动回填发布记录）。
+- 发布事件：`post.publish.*` 覆盖 API 发布的帖子（含 `publish.live` 携带 post_id，平台自动回填发布记录）。
 
-> 权威来源：`docs/official/tiktok/webhook/`。
+> 来源：TikTok 官方文档（Webhooks 章节）。
 
 ## 推送格式
 
 ```
-POST https://your-server.com/webhooks/vidgate
+POST https://your-server.com/webhooks/haina
 Content-Type: application/json
 X-Vidgate-Signature: t=1760000000,v1=<签名>
 ```
@@ -62,7 +62,7 @@ X-Vidgate-Signature: t=1760000000,v1=<签名>
   "type": "tiktok.message.received",          // 归一化事件类型（平台前缀命名空间）
   "event": "im_receive_msg",           // 官方原始事件名
   "occurred_at": "2026-09-18T01:23:45.000Z",  // 事件发生时刻
-  "received_at": "2026-09-18T01:23:46.100Z",  // vidgate 收到时刻（对账用）
+  "received_at": "2026-09-18T01:23:46.100Z",  // 平台收到时刻（对账用）
   "seat_id": "……",
   "data": { /* 事件内容（字段名与官方文档一致） */ }
 }
