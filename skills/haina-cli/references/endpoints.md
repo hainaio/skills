@@ -3,24 +3,39 @@
 
 > 认证 `Authorization: Bearer vg_live_...`；统一 envelope `{ code, message, data }`（以 `code` 判成败）；限流 60 次/分/token（429 + code 2002 + Retry-After）。
 
-## Videos
+## 坐席
 
-> 视频库（上传中转/查询/删除；TT/TTS 公用）
+> 坐席与账号绑定（只读；绑定/解绑在管理后台完成）
+
+### GET /v1/seats
+
+坐席列表（含绑定与授权健康状态）
+
+- ⚠ 绑定/解绑只能在管理后台完成（OAuth 流程），本接口只读
+
+## 视频库
+
+> 视频上传 / 列表 / 详情 / 删除（TT/TTS 公用）
 
 ### POST /v1/videos
 
-上传视频（multipart 中转）
+上传视频（multipart 直传 / JSON URL 取流）
 
 - 必填 body（multipart）：file
 - 条件必填（multipart）：accountId（library=tts 时必填（creatorUserOpenId））
-- ⚠ TT 库返回公网 URL（7 天有效期，发布用 videoUrl）；TTS 库返回官方 fileId（需带 accountId=creatorUserOpenId，发布/预审用 fileId）
-- ⚠ ≤100MB，mp4/mov
+- 必填 body：sourceUrl
+- 条件必填：accountId（library=tts 时必填（creatorUserOpenId））
+- ⚠ **application/json**：传 `{ "sourceUrl": "..." }`，由平台从该公网 URL 拉取视频（素材在自家 OSS 时无需先下载到本地）
+- ⚠ 仅支持 http/https 公网地址，私网/环回地址拒绝（2001）；重定向最多 5 次（逐跳校验）
+- ⚠ 两个库的区别：
+- ⚠ **TTS 库**（`library=tts`）：返回官方 `fileId`（一次性消耗），用于挂车发布/预审；必须带 `accountId`（TTS 账号的 creatorUserOpenId）
+- ⚠ 文件限制：mp4/mov，≤100MB
 
 ### GET /v1/videos
 
 视频列表（游标分页）
 
-- ⚠ 注意：已删除（软删）的记录仍保留在列表中，以 status=expired 标识（审计留痕）；判断可用性看 status，不要以「列表里还有没有」判断删除是否生效
+- ⚠ 已软删的记录仍保留在列表中（`status=expired`，审计留痕）——判断视频是否可用请看 `status`，不要以「列表里还有没有」判断删除是否生效
 
 ### GET /v1/videos/{id}
 
@@ -33,86 +48,128 @@
 删除视频（软删=立即失效）
 
 - 必填参数：id（path）
-- ⚠ 软删语义：记录标记 status=expired 后——① 发布/预审等消耗路径立即拒绝（2005），「立即失效」指此；② 删除后记录仍可查：列表/详情继续返回（status=expired，videoUrl/expiresAt 字段保留原值，审计留痕），属预期行为，勿以「列表消失」判断删除成功
+- ⚠ **立即失效**：删除后该视频不能再用于发布/预审（消耗路径返回 2005）
+- ⚠ **记录保留**：列表/详情仍可查到（`status=expired`，`videoUrl`/`expiresAt` 等字段保留原值，审计留痕）——「列表里还有」属预期，不代表删除失败
 
-## Seats
+## TikTok 发布（新版）
 
-> 坐席与账号绑定（只读）
+> TikTok 发布新版接口（默认推荐），按发布流程排布：话题/地域辅助 → 视频发布 → 图片帖发布 → 状态直查
 
-### GET /v1/seats
+### GET /v1/tiktok/v1.3/business/hashtag/suggestion
 
-坐席列表（含绑定与授权健康状态）
+话题推荐（官方镜像：GET /open_api/v1.3/business/hashtag/suggestion/）
 
-## Products
+- 必填参数：account（query）、keyword（query）
 
-> TTS 商品拉取
+### GET /v1/tiktok/v1.3/business/publish/location
 
-### POST /v1/products/query
+地域标签搜索（官方镜像：GET /open_api/v1.3/business/publish/location/）
 
-TTS 商品拉取（shop/showcase 分组游标）
+- 必填参数：account（query）、query（query）
+- ⚠ 发布图片帖前挂地域标签用：按 `query`（≤100 字符）返回 ≤20 个可用地点，`locationId` + `locationName` 配对用于发布入参
 
-- 必填 body：accountId
+### POST /v1/tiktok/v1.3/business/video/publish
 
-## TikTok 发布
+TT 视频发布·新版（默认推荐；对齐官方 POST /open_api/v1.3/business/video/publish/）
 
-> TikTok 视频发布（TT）：发布 / 状态轮询 / 数据回收
+- 必填 body：videoUrl、account
+- ⚠ `videoUrl` 需为视频库已登记的 URL（`POST /v1/videos` 响应原值，7 天有效期校验同旧版）
 
-### POST /v1/publish/tiktok
+### POST /v1/tiktok/v1.3/business/photo/publish
 
-TT 发布（公网 URL 直发）
+图片帖发布（对齐官方 POST /open_api/v1.3/business/photo/publish/）
 
-- 必填 body：videoUrl、accountId
-- ⚠ videoUrl 必须来自你的视频库（POST /v1/videos 响应原值，平台会校验该 URL 属于你的视频库且在 7 天有效期内）
-- ⚠ 官方限制：每 TikTok 账号 ≤6 个/分钟、≤15 个/天；视频时长 3–600s、宽高 ≥360px、帧率 23–60 FPS
+- 必填 body：account、photoUrls、privacyLevel
+- ⚠ `photoUrls`：1-35 张公网 https 图片（每张 ≤20MB，JPG/JPEG/WebP）
+- ⚠ `privacyLevel` 必填；可用档位以 `GET business/video/settings` 返回的 `privacy_level_options` 为准
+- ⚠ 配额硬限：每账号 6 帖/分钟、15 帖/天（与视频同额；官方控制，报错透传）
+
+### GET /v1/tiktok/v1.3/business/publish/status
+
+TT 发布状态刷新（官方镜像：GET /open_api/v1.3/business/publish/status/）
+
+- 必填参数：publishId（query）
+- ⚠ `publishId` 命中你的发布记录时（常规轮询场景）：只需传 `publishId`——平台自动完成归属校验、拉取官方最新状态并**回写你的发布记录**；响应为归一化结构 `{ publishId, shareId, status, postId, tiktok }`（`status` 已归一小写，`tiktok` 为官方原始响应）
+- ⚠ 建议每 5–10 秒轮询、最多约 30 次；到达终态（`publish_complete` / `publish_failed` / `beervid_error`）即停止
+- ⚠ `postId`（TikTok item_id）官方数据处理可能延迟约 3 分钟——刚发布成功未拿到时稍后重查
+
+## 发布状态与记录
+
+> 发布状态轮询 / 发布记录 / 数据回收——新旧两版发布接口共用
 
 ### GET /v1/publish/tiktok/status
 
 TT 发布状态刷新（每次调用即拉取官方最新状态并同步到你的发布记录）
 
 - 必填参数：shareId（query）
-- ⚠ 建议每 5–10s 轮询、最多约 30 次；终态 publish_complete / publish_failed / beervid_error 即停
-- ⚠ postId（TikTok item_id）官方数据处理可能延迟约 3 分钟
-
-### GET /v1/publish/records
-
-发布记录分页（只读快照，不在此刷新状态；最新状态请用 status 接口）
-
-- ⚠ 字段口径必须分清：videoId 是平台视频库记录 ID（对应 GET /v1/videos/{id}，只能用于视频库管理）；官方句柄必须看 shareId 字段——TT 记录=官方 share_id（status 接口的 shareId 入参），TTS 记录=官方 video_id（status 接口的 videoId 入参）
-- ⚠ 勿拿 records 的 videoId 去查发布状态（必 1005）
+- ⚠ **将要废弃**（1.6.x 移除，移除前功能不受影响）：请迁移到官方镜像路径 `GET /v1/tiktok/v1.3/business/publish/status`（`publishId` 传本接口的 `shareId` 即可——命中发布记录时行为与本接口完全一致：归属校验 + 回写记录 + 归一化响应）
+- ⚠ **新旧两版发布共用的轮询入口**（平台按发布记录自动识别来源通道，无需关心视频是从哪个版本发布的）——只需 `shareId`，归属校验与记录回写自动完成
+- ⚠ 建议每 5–10 秒轮询、最多约 30 次；到达终态（`publish_complete` / `publish_failed` / `beervid_error`）即停止
+- ⚠ `postId`（TikTok item_id）由官方数据处理生成，发布成功后可能延迟约 3 分钟才返回——刚发布成功未拿到时稍后重查
 
 ### GET /v1/publish/stats
 
 TT 视频数据回收（views/likes/comments/shares…）
 
 - 必填参数：itemId（query）
-- ⚠ itemId 反查你的发布记录做归属校验并取发布账号；查无（不是你的/未发布成功）→ 1005
-- ⚠ 注意：postId 由官方数据处理生成，publish_complete 后可能延迟约 3 分钟——记录 postId=null 期间查本接口必 1005，属预期，等 status 轮询拿到 postId 再查
+- ⚠ **将要废弃**（1.6.x 移除，移除前功能不受影响）：请改用「数据洞察」面的 `GET /v1/tiktok/v1.3/business/video/list`（`videoIds` 传 postId）——功能与官方接口路由一致，字段更多（官方原样字段，可用 `fields` 自选）
+- ⚠ 平台按 itemId 反查你的发布记录做归属校验，并自动取发布账号；查无（不是你的/未发布成功）→ 1005
+- ⚠ **时机坑**：`postId` 由官方数据处理生成，`publish_complete` 后可能延迟约 3 分钟——记录 `postId=null` 期间查本接口必 1005，属预期；等 status 轮询拿到 postId 再查
+
+### GET /v1/publish/records
+
+发布记录分页（只读快照，不在此刷新状态；最新状态请用 status 接口）
+
+- ⚠ 字段口径必须分清：
+- ⚠ **勿拿 records 的 `videoId` 去查发布状态（必 1005）
+
+## TikTok 发布（旧版）
+
+> 1.4.x 旧版发布接口，将要废弃（1.6.x 移除）——请迁移到「TikTok 发布（新版）」
+
+### POST /v1/publish/tiktok
+
+TT 发布（公网 URL 直发）
+
+- 必填 body：videoUrl、accountId
+- ⚠ 把视频库中的 TT 视频发布到 TikTok——TikTok 会自行下载你传入的公网 URL，无需你的服务器在线
+- ⚠ **将要废弃**（1.6.x 移除，移除前功能不受影响）：请迁移到新版 `POST /v1/tiktok/v1.3/business/video/publish`（参数、返回、状态轮询完全同口径，平滑切换）
+- ⚠ `videoUrl` 必须是 `POST /v1/videos` 响应的原值——平台会校验该 URL 属于你的视频库且在 7 天有效期内（查无 1005，过期 2005）
+- ⚠ 官方限制：每个 TikTok 账号每分钟最多 6 个、每天最多 15 个视频
+- ⚠ 视频规格：时长 3–600 秒、宽高 ≥360px、帧率 23–60 FPS（不满足会在发布阶段被官方拒绝）
+
+## 商品拉取
+
+> TTS 可挂车商品拉取（店铺 + 橱窗）
+
+### POST /v1/products/query
+
+TTS 商品拉取（shop/showcase 分组游标）
+
+- 必填 body：accountId
+- ⚠ `productType` 省略时店铺+橱窗两组都返回；**两组游标互相独立，翻页必须在单类型下进行**
+- ⚠ 翻页：`pageToken` 传上一页响应的 `nextPageToken`（勿按 totalCount 推算页数）
 
 ## TikTok Shop 挂车
 
 > TikTok Shop 挂车发布（TTS）：发布 / 状态轮询 / 预审（可选）/ 封面上传 / 音乐搜索
 
-### POST /v1/publish/tts
+### POST /v1/photos
 
-TTS 挂车发布（对齐官方 Post Shoppable Video v202607）
+上传 TTS 封面图（multipart 直传 / JSON URL 取流）→ photoUri
 
-- 必填 body：fileId、accountId、productId
-- 条件必填：title（视频标题/文案（caption），官方必填（缺省官方报 3001「Title of VideoInfo is a required field」；网关不预检、缺省时透传官方报错，CLI 已本地必填拦截）；支持 #话题 和 @提及；长度与内容由官方校验）
-- ⚠ 入参全部为官方口径：fileId 是官方 Upload Video File 返回的 file_id（即 POST /v1/videos library=tts 响应的 fileId），一次性消耗——调用本接口即消耗，失败也不可复用，重试需重新上传获得新 fileId
-- ⚠ 平台只校验视频归属与账号绑定（查无/未绑定 → 1005）；内容类规则（锚点文案、caption 长度、fileId 是否已消耗等）全部由官方校验，违规透传官方报错（3001，message 含官方原因）
-- ⚠ 无需预审凭证：建议先调 POST /v1/publish/tts/precheck 自检（violation FAIL 不建议发布），但是否发布由你自行判断
-- ⚠ 视频规格 ≤100MB、mp4/mov、720p+
+- 必填 body（multipart）：file、accountId
+- 必填 body：sourceUrl、accountId
+- ⚠ 图片约束（与官方一致）：JPG/JPEG/PNG/WEBP/HEIC/BMP，每张 ≤10MB，宽高比 9:16 ~ 16:9
 
-### GET /v1/publish/tts/status
+### POST /v1/music/search
 
-TTS 发布状态刷新（每次调用即拉取官方最新状态并同步到你的发布记录）
+TTS 电商授权音乐搜索（BGM）
 
-- 必填参数：videoId（query）
-- ⚠ 官方无 webhook，轮询是唯一终态路径
-- ⚠ videoId = POST /v1/publish/tts 响应的 videoId（即官方 Post Shoppable Video 返回的 video_id）——提交发布后立即可查，无需等待
-- ⚠ 发布记录（GET /v1/publish/records）里的 shareId 字段即此官方 video_id，可用于本接口；records 的 videoId 是平台视频库 ID，勿用于本接口（必 1005）
-- ⚠ accountId 无需提供：平台按 videoId 反查你的发布记录自动带出（查无/非本人 → 1005；TT 记录 → 2001）
-- ⚠ 建议每 5–10s 轮询、最多约 30 次；终态 publish_complete / publish_failed 即停
+- 必填 body：accountId、keyword
+- ⚠ 第 2 页起必须同时带上同一个 `searchId` + 上一页的 `nextPageToken`，否则翻页可能失败
+- ⚠ `searchId` 每次调用都会变——一次翻页链必须在同一次搜索会话内连续传递，跨调用不可复用
+- ⚠ 带小 `pageSize` 的首调用可能返回空数组但 `hasMore=true`——别误判无结果，带返回的 token + searchId 再查一次即得数据
 
 ### POST /v1/publish/tts/precheck
 
@@ -121,26 +178,251 @@ TTS 预审提交（可选工具；官方 Pre-check Shoppable Video）
 - 必填 body：fileId、accountId、productId
 - 条件必填：productTitle（商品锚点文案（官方必填：≤30 字符、不含标点和 emoji；缺失/违规由官方校验报错））
 - ⚠ 发布前自检视频与商品锚点是否违规
-- ⚠ 配额 50 次/天/账号：每次成功创建预审任务消耗一次配额（同一 fileId 重复提交会生成多个任务并多次消耗），配额耗尽返回 2002
-- ⚠ 预审是可选工具——发布接口不要求预审凭证，violation 结果由你自行记录和判断（官方规则建议 violation FAIL 不要发布）
+- ⚠ 配额 50 次/天/账号：每次成功创建任务即消耗一次（同一 fileId 重复提交会生成多个任务并多次消耗），耗尽返回 2002
+- ⚠ 预审是可选工具：发布接口不要求预审凭证；violation 结果由你自行判断（官方规则建议 violation FAIL 不要发布）
 
 ### GET /v1/publish/tts/precheck/{taskId}
 
 TTS 预审结果查询（按官方 taskId）
 
 - 必填参数：taskId（path）
-- ⚠ status=passed/failed 由 violation 维度决定；violationCheckResult FAIL = 内容违规（官方建议不要发布，是否发布由你决策）；goodQualityCheckResult FAIL 仅是优质内容诊断建议（qualitySuggestions），不影响发布
+- ⚠ `violationCheckResult` FAIL = 内容违规（官方建议不要发布，是否发布由你决策）
 
-### POST /v1/photos
+### POST /v1/publish/tts
 
-上传 TTS 封面图（multipart）→ photoUri
+TTS 挂车发布（对齐官方 Post Shoppable Video）
 
-- 必填 body（multipart）：file、accountId
-- ⚠ JPG/JPEG/PNG/WEBP/HEIC/BMP，≤10MB，宽高比 9:16~16:9
+- 必填 body：fileId、accountId、productId
+- 条件必填：title（视频标题/文案（caption），官方必填（缺省官方报 3001「Title of VideoInfo is a required field」；网关不预检、缺省时透传官方报错，CLI 已本地必填拦截）；支持 #话题 和 @提及；长度与内容由官方校验）
+- ⚠ **fileId 一次性消耗**：调用本接口即消耗，失败也不可复用；重试需重新上传视频获取新 fileId
+- ⚠ **平台只校验归属**：视频归属与账号绑定（查无/未绑定 → 1005）；内容类规则（锚点文案、标题长度、fileId 是否已消耗等）全部由官方校验，违规透传官方报错（3001，message 含官方原因）
+- ⚠ **无需预审凭证**：建议先调 `POST /v1/publish/tts/precheck` 自检（violation FAIL 不建议发布），是否发布由你自行判断
+- ⚠ 视频规格：≤100MB、mp4/mov、720p+
 
-### POST /v1/music/search
+### GET /v1/publish/tts/status
 
-TTS 电商授权音乐搜索（BGM）
+TTS 发布状态刷新（每次调用即拉取官方最新状态并同步到你的发布记录）
 
-- 必填 body：accountId、keyword
-- ⚠ 分页语义（官方怪癖，逐条实测）：① nextPageToken 是数值 offset（按 pageSize 递增），翻页原值回传，勿当不透明游标缓存；② 第 2 页起必须同时带 searchId + pageToken；③ searchId 每次调用都变（一次翻页链=同一会话内连续传递，跨调用不可复用）；④ 带小 pageSize 的首调用可能返回空数组但 hasMore=true——别误判无结果，带返回的 nextPageToken+searchId 再查一次即得数据（官方行为，非故障）
+- 必填参数：videoId（query）
+- ⚠ 官方无 webhook，轮询是获取终态的唯一路径
+- ⚠ 口径注意：`GET /v1/publish/records` 里的 `shareId` 字段就是这个官方 video_id（可用于本接口）；records 的 `videoId` 是平台视频库 ID，**不能**用于本接口（必 1005）
+- ⚠ 无需传 `accountId`：平台按 videoId 反查发布记录自动带出（查无/非本人 → 1005；误传 TT 记录 → 2001）
+- ⚠ 建议每 5–10 秒轮询、最多约 30 次；到达终态（`publish_complete` / `publish_failed`）即停止
+
+## 数据洞察
+
+> TikTok 数据洞察：账号概览 / 视频指标 / 行业基准 / 发布设置查询
+
+### GET /v1/tiktok/v1.3/business/get
+
+账号概览（官方镜像：GET /open_api/v1.3/business/get/）
+
+- 必填参数：account（query）
+- ⚠ 给 `startDate` / `endDate`（YYYY-MM-DD，UTC，回溯 ≤60 天）时自动追加 `metrics` 日序列
+
+### GET /v1/tiktok/v1.3/business/video/list
+
+视频列表+指标（官方镜像：GET /open_api/v1.3/business/video/list/）
+
+- 必填参数：account（query）
+- ⚠ `fields` 逗号分隔透传官方字段集（缺省为核心指标集）；字段权限：`video.list` 基础字段 / `video.insights` 深度指标；指标类数据延迟 T+24~48 小时
+
+### GET /v1/tiktok/v1.3/business/benchmark
+
+行业基准（官方镜像：GET /open_api/v1.3/business/benchmark/）
+
+- 必填参数：account（query）、category（query）
+
+### GET /v1/tiktok/v1.3/business/video/settings
+
+发布隐私/时长设置（官方镜像：GET /open_api/v1.3/business/video/settings/）
+
+- 必填参数：account（query）
+- ⚠ 发布前自检：返回 `privacy_level_options`（可用隐私档位）/ `comment_disabled` / `duet_disabled` / `stitch_disabled` / `max_video_post_duration_sec`（账号最大发布时长，超时长发布必失败）
+
+## TikTok 评论
+
+> TikTok 评论管理：与官方 /open_api/v1.3/business/comment/** 路径纯前缀替换对应
+
+### GET /v1/tiktok/v1.3/business/comment/list
+
+评论列表（官方镜像：GET /open_api/v1.3/business/comment/list/）
+
+- 必填参数：account（query）、videoId（query）
+- ⚠ `account` 取代 `business_id`：传 username 或 businessId 皆可，归属与凭据由平台自动关联
+- ⚠ 参数名为 camelCase；评论 id 为 uint64 字符串（原样回传，勿转数字）
+- ⚠ 官方延迟/排序/500 条截断口径见官方文档
+
+### GET /v1/tiktok/v1.3/business/comment/reply/list
+
+评论的回复列表（官方镜像：GET /open_api/v1.3/business/comment/reply/list/）
+
+- 必填参数：account（query）、videoId（query）、commentId（query）
+- ⚠ 注意官方限制：不支持隐藏评论（HIDDEN）的回复列表
+
+### POST /v1/tiktok/v1.3/business/comment/create
+
+发顶层评论（官方镜像：POST /open_api/v1.3/business/comment/create/）
+
+- 必填 body：account、videoId、text
+- ⚠ text ≤1200 字符
+
+### POST /v1/tiktok/v1.3/business/comment/reply/create
+
+回复评论（官方镜像：POST /open_api/v1.3/business/comment/reply/create/）
+
+- 必填 body：account、videoId、commentId、text
+
+### POST /v1/tiktok/v1.3/business/comment/like
+
+点赞/取消点赞（官方镜像：POST /open_api/v1.3/business/comment/like/）
+
+- 必填 body：account、commentId、action
+
+### POST /v1/tiktok/v1.3/business/comment/hide
+
+隐藏/恢复评论（官方镜像：POST /open_api/v1.3/business/comment/hide/）
+
+- 必填 body：account、videoId、commentId、action
+
+### POST /v1/tiktok/v1.3/business/comment/delete
+
+删除评论（官方镜像：POST /open_api/v1.3/business/comment/delete/）
+
+- 必填 body：account、commentId
+- ⚠ 官方约束：仅自己账号发出的评论可删；他人评论只能隐藏（官方报错透传）
+
+## TikTok 私信
+
+> TikTok 私信：会话列表 / 消息列表 / 发送 / 媒体 / 能力自检
+
+### GET /v1/tiktok/v1.3/business/message/conversation/list
+
+私信会话列表（官方镜像：GET /open_api/v1.3/business/message/conversation/list/）
+
+- 必填参数：account（query）、conversationType（query）
+- ⚠ `conversationType` 必填：`SINGLE` = 已建立会话（已回复过）；`STRANGER` = 陌生人消息请求（未回复）
+- ⚠ 仅覆盖近 90 天，最多 100 条
+- ⚠ 前置条件：坐席账号需在 TikTok App 开启「接收所有人私信」，否则新会话不会进入列表
+
+### GET /v1/tiktok/v1.3/business/message/content/list
+
+会话消息列表（官方镜像：GET /open_api/v1.3/business/message/content/list/）
+
+- 必填参数：account（query）、conversationId（query）
+
+### POST /v1/tiktok/v1.3/business/message/send
+
+发送私信（官方镜像：POST /open_api/v1.3/business/message/send/）
+
+- 必填 body：account、conversationId
+- ⚠ `text`：文本（≤6000 字符）
+- ⚠ 非互关会话有发送窗口约束：收信后 48 小时内最多 10 条，超窗最多再发 3 条（官方控制，报错透传）
+
+### POST /v1/tiktok/v1.3/business/message/media/upload
+
+私信图片上传（官方镜像：POST /open_api/v1.3/business/message/media/upload/）
+
+- 必填 body（multipart）：account、file
+- ⚠ 文件约束：JPG/PNG，≤3MB
+
+### POST /v1/tiktok/v1.3/business/message/media/download
+
+私信媒体下载地址（官方镜像：POST /open_api/v1.3/business/message/media/download/）
+
+- 必填 body：account、conversationId、messageId、mediaId
+- ⚠ 下载该 URL 必须带请求头 `x-user: <账号 access token>`——access token 不出平台服务端，因此本端点只负责返回 URL，实际下载需经服务端转发（代理端点后续按需开放）
+
+### GET /v1/tiktok/v1.3/business/message/capabilities/get
+
+会话能力查询（官方镜像：GET /open_api/v1.3/business/message/capabilities/get/）
+
+- 必填参数：account（query）、conversationId（query）、conversationType（query）
+
+## 自动消息
+
+> TikTok 账号级自动应答：欢迎语 / 常见问题 / 输入框提示按钮（含官方审核状态机）
+
+### POST /v1/tiktok/v1.3/business/message/auto_message/get
+
+自动消息查询（官方镜像：POST /open_api/v1.3/business/message/auto_message/get/）
+
+- 必填 body：account、autoMessageType
+- ⚠ 类型上限：`WELCOME_MESSAGE` ≤1 条、`SUGGESTED_QUESTION` ≤3 条、`CHAT_PROMPT` ≤6 条
+
+### POST /v1/tiktok/v1.3/business/message/auto_message/create
+
+创建自动消息（官方镜像：POST /open_api/v1.3/business/message/auto_message/create/）
+
+- 必填 body：account、autoMessageType
+- ⚠ 条件必填按类型：`WELCOME_MESSAGE` → `content`；`SUGGESTED_QUESTION` → `question` + `answer`；`CHAT_PROMPT` → `title` + `content`
+- ⚠ 长度上限（content 250 / question 80 / answer 200 / title 18 / chatPrompt content 150 字符）由官方校验，报错透传，本平台不预检
+
+### POST /v1/tiktok/v1.3/business/message/auto_message/update
+
+更新自动消息（官方镜像：POST /open_api/v1.3/business/message/auto_message/update/）
+
+- 必填 body：account、autoMessageId、autoMessageType
+- ⚠ 条件必填同 create
+- ⚠ 审核中（auditStatus=REVIEWING）的条目不可更新——官方报错透传；REJECTED 条目官方不允许经 status/update 恢复
+
+### POST /v1/tiktok/v1.3/business/message/auto_message/delete
+
+删除自动消息（官方镜像：POST /open_api/v1.3/business/message/auto_message/delete/）
+
+- 必填 body：account、autoMessageId、autoMessageType
+- ⚠ 仅 SUGGESTED_QUESTION / CHAT_PROMPT 可删；WELCOME_MESSAGE 官方不可删除（本地拦截 2001），改用 status/update operationStatus=DISABLE 关闭
+
+### POST /v1/tiktok/v1.3/business/message/auto_message/sort
+
+自动消息排序（官方镜像：POST /open_api/v1.3/business/message/auto_message/sort/）
+
+- 必填 body：account、autoMessageIds
+
+### POST /v1/tiktok/v1.3/business/message/auto_message/status/update
+
+自动消息整类开关（官方镜像：POST /open_api/v1.3/business/message/auto_message/status/update/）
+
+- 必填 body：account、autoMessageType、operationStatus
+- ⚠ WELCOME_MESSAGE 的唯一关闭方式（不可删除）
+
+## Events
+
+> 事件流拉取（webhook push 的对账兜底）
+
+### GET /v1/events
+
+事件流拉取（webhook push 的兜底/对账通道）
+
+- ⚠ 评论事件的官方延迟上限约 5 分钟
+
+### GET /v1/events/stream
+
+SSE 实时事件流（listen 通道，无公网环境的接收方式）
+
+### POST /v1/events/{id}/redeliver
+
+事件重投（Stripe 式 resend）
+
+- 必填参数：id（path）
+
+## Webhook Endpoints
+
+> 事件推送端点管理（secret 仅创建时返回一次，用于验签）
+
+### POST /v1/webhook-endpoints
+
+创建 webhook 端点（事件推送到你的服务）
+
+- 必填 body：url、eventTypes
+- ⚠ 投递语义：at-least-once；失败按 1m/5m/15m/1h/3h/8h/24h 退避重试，8 次后进死信
+
+### GET /v1/webhook-endpoints
+
+列出 webhook 端点
+
+### DELETE /v1/webhook-endpoints/{id}
+
+删除 webhook 端点
+
+- 必填参数：id（path）

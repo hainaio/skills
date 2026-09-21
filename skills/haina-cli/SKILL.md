@@ -3,7 +3,7 @@ name: haina-cli
 description: 通过 HAiNA CLI 发布视频到 TikTok / TikTok Shop（挂车带货）、查询坐席与商品、跟踪发布状态、TTS 预审。Use when the user wants to upload or publish videos to TikTok / TikTok Shop, query seats or shoppable products, run TTS precheck, upload covers, search music, or check publish status via the HAiNA CLI API platform.
 metadata:
   author: beervid
-  version: "0.6.0"
+  version: "0.8.0"
 ---
 
 # HAiNA CLI 视频发布
@@ -15,12 +15,21 @@ HAiNA CLI 是 TikTok / TikTok Shop 视频发布 API 平台。本 skill 教你用
 ```bash
 which haina || npm install -g @hainaio/cli   # 要求 Node ≥22
 haina auth status                            # 退出码非 0 = 未配置凭据
-haina version                                # 核对能力版本
+haina version                                # 核对能力版本（见下「版本门」）
 ```
 
 - 旧安装的命令名是 `vidgate`（@vidgate/cli），与 `haina` 完全等价——看到用户机器上只有 vidgate 时照用不误，但新安装一律 `@hainaio/cli`。
 - 无凭据 → 提示用户提供 API Token（控制台「API Keys」页创建）：`haina auth login --token <t>`，或 `export VIDGATE_API_TOKEN=vg_live_...`。
-- **能力版本门**：稳定版 **≥ 1.4.0** 具备全部命令（只读 + 写链路 + `skill install`）；beta 通道自 `0.0.2-beta` 起同样全量。拿不准就以 `haina --help` 输出为准（含 `videos upload` 即具备写能力）；版本过旧就提示用户 `npm update -g @hainaio/cli`。
+
+### 版本门（CLI × Skill 兼容）
+
+**本 skill 对应 CLI ≥ 1.5.0**（skill 与 CLI 同版本发布，浮动通道——GitHub 镜像 / tarball 直链——永远是最新 skill）。
+
+- `haina version` ≥ 1.5.0：全量能力可用（核心发布链路 + 评论/私信/自动消息/数据洞察/事件推送/图片帖）。
+- CLI 1.4.x：核心链路可跑（坐席/视频库/商品/TT/TTS 发布/预审/封面/音乐），但**没有**评论、私信、洞察、webhooks、events、listen、publish photo/hashtags/locations 这些 1.5 新增面——**建议直接升级**：`npm update -g @hainaio/cli`（或 `npm i -g @hainaio/cli@latest`）。
+- **版本错配信号**：命令报「未知命令」（exit 1 + usage 输出）= 当前 CLI 不含该命令 → 先 `haina version` 确认，再引导升级；不要反复重试或猜测 flag。
+- 反向（CLI 新 + skill 旧）天然兼容：旧 flag 在新版 CLI 均保留兼容别名（`--share-id`/`--account-id` 等），旧 skill 内容照跑不误——但仍建议重装 skill 获取新能力面（`haina skill install --yes`）。
+- 拿不准能力边界时，以 `haina --help` 输出为最终事实。
 
 ## 1. 凭据纪律（安全红线）
 

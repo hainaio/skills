@@ -48,13 +48,16 @@ seats list（拿 businessId）→ videos upload（拿 videoUrl，7 天有效）�
 
 ## 数据回收（stats）
 
+走「数据洞察」面的官方镜像路由（与官方接口路由一致，字段更多）：
+
 ```bash
-haina publish stats <postId> --json
+haina insights videos --account <accountId> --video-ids <postId> --json
 ```
 
-返回 `videoViews/likes/comments/shares/reach` 等（`stats` 可得性取决于授权 scope；无数据时 stats 为 null）。itemId 即 postId；查不到说明视频未发布成功或不属于你（1005）。
+返回 `videos[]` 为官方原样字段（`video_views/likes/comments/shares/reach` 等；可得性取决于授权 scope，可用 `--fields` 自选字段集）。
 
-- 时机坑：postId 官方生成有约 3 分钟延迟——`publish records` 里 `postId=null` 期间查 stats 必 1005，属预期；等 status 轮询拿到 postId 再查。
+- ⚠️ 旧命令 `haina publish stats <postId>` 将要废弃（1.6.x 移除），勿再使用。
+- 时机坑：postId 官方生成有约 3 分钟延迟——`publish records` 里 `postId=null` 期间查不到属预期；等 status 轮询拿到 postId 再查。
 
 ## 常见失败模式
 

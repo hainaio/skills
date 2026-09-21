@@ -117,3 +117,14 @@ haina music search --account-id <id> --keyword love --json
 - ⚠️ **`publish records` 里的 `videoId` 是平台视频库记录 ID（对应 videos 库），不能用于 status 查询（必 1005）**。记录里用于查状态的字段是 `shareId`（TTS 记录的 `shareId` = 官方 video_id）。最稳口径：以 `publish tts` 即时响应的 `videoId` 为准并保存。
 - 提交后立即可查；5–10s 一次；终态 `publish_complete` / `publish_failed`（失败原因读 `failReason`）；`beervid_error` = 平台侧调用失败，可重试。
 - TTS 无 webhook，轮询是唯一终态路径。
+
+## 数据回收（播放/点赞等指标）
+
+挂车视频发布后就是账号上的普通帖子（带商品锚点），指标走数据洞察面：
+
+```bash
+haina insights videos --account <同坐席 TT 账号>   # 列表倒序，新视频在第一页，指标（video_views/likes/...）随行返回
+```
+
+- ⚠️ `publish stats` **不支持 TTS**（TT 专属且将要废弃）——TTS 取数一律走 `insights videos`。
+- TTS 记录没有 TikTok item_id（官方 TTS 状态响应只有 TTS 侧 video_id），所以是拉列表按 `caption`/`create_time` 定位；坐席需绑 TT 能力（洞察走 TT 体系授权）。
