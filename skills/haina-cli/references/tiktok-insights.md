@@ -35,8 +35,8 @@ haina tt insight video-settings --account <id> --json               # 发布前�
 
 ## 端点口径
 
-- `insights videos`：官方 `max_count` 上限 **20**；`--video-ids` 定点查（配 `--ad-post-only` 过滤仅广告帖）；游标为数值型 epoch 毫秒。
-- `insights account`：`--start-date/--end-date`（UTC，回溯 ≤60 天）才有 `metrics` 日序列。
-- `insights benchmark`：25 个行业类目枚举（如 `BEAUTY`），返回该行业 8 项平均值（点赞/评论/分享/粉丝数/粉丝增长/互动率/播放量/发帖数）。
+- `tt insight videos`：官方 `max_count` 上限 **20**；`--video-ids` 定点查（配 `--ad-post-only` 过滤仅广告帖）；游标为数值型 epoch 毫秒。
+- `tt insight account`：`--start-date/--end-date`（UTC，回溯 ≤60 天）才有 `metrics` 日序列。
+- `tt insight benchmark`：25 个行业类目枚举（如 `BEAUTY`），返回该行业 8 项平均值（点赞/评论/分享/粉丝数/粉丝增长/互动率/播放量/发帖数）。
 
 > 来源：TikTok 官方文档（Accounts API › Insights 章节）。

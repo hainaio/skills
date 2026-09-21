@@ -117,7 +117,8 @@ CML 热门商用音乐（对应官方 GET /open_api/v1.3/discovery/cml/trending_
 - 必填参数：account（query）
 - ⚠ TikTok 官方商用音乐库（CML）热门曲目选曲——给视频/图片帖发布选 BGM 用（返回 ≤100 条）
 - ⚠ **发布要用 `songClipId`，勿用 `commercialMusicId`**：每条曲目的 `trendingSongClip.songClipId`（近 30 天最热剪辑）/ `fullDurationSongClip.songClipId`（完整曲目）才是发布接口的 `musicSoundId` 入参；`commercialMusicId` 是曲目 id，只能用于 `cml/video_list` 查关联热门视频
-- ⚠ `previewUrl` 为不过期的试听地址；`duration` 单位为秒（剪辑曲目可能为 0）
+- ⚠ 注意取值路径：songClipId 在**嵌套对象**里（`data.list[].trendingSongClip.songClipId`），不在曲目顶层；`fullDurationSongClip` 可为空对象 `{}`（此时只能用 trendingSongClip）
+- ⚠ `previewUrl` 为不过期的试听地址；曲目顶层 `duration` 对剪辑曲目可能为 0，真实时长看 clip 对象的 `duration`（秒）
 - ⚠ 注意：CML ≠ App 流行曲库——热门版权流行歌不可用于 Business 账号（App 内也一样）；要流行歌只能发草稿后在 App 内手动加
 - ⚠ 官方限流：Discovery API 全端点共享 10 QPS/开发者应用，勿高频轮询
 

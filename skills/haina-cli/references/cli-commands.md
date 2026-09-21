@@ -43,7 +43,7 @@
 | `haina videos delete <id>` | DELETE /v1/videos/{id} | id | 软删=立即失效：发布/预审立即拒绝（2005）；记录仍留列表/详情（status=expired，字段保留），属预期 |
 | `haina images upload <file>` | POST /v1/images | file（positional） | 图片素材上传（jpg/png/webp ≤20MB）：返回已过官方域名验证的 `imageUrl`——作 `tt video publish --cover-url`（自定义封面）或图片帖 `--photo-urls` 供源。不落库无列表，响应即取即用 |
 | `haina tt video publish` | POST /v1/tiktok/v1.3/business/video/publish（新版，默认推荐） | `--video-url` `--account`（`--account-id` 兼容别名） | `--caption` `--brand-organic` `--branded-content` `--disable-comment` `--disable-duet` `--disable-stitch` `--thumbnail-offset <ms>` BGM：`--music-id <songClipId>`（缺它时其余音乐 flag 拒收）`--music-volume 0-100` `--original-sound-volume 0-100`（缺省平台补 50，显式 0=静音）`--music-start/--music-end <ms>` `--wait`；`--via beervid` 走旧版端点（POST /v1/publish/tiktok，不支持音乐参数，将要废弃——1.6.x 移除） |
-| `haina tt music trending --account <id>` | GET /v1/tiktok/v1.3/discovery/cml/trending_list | account | CML 热门商用音乐选曲（≤100 条）。`--genre <官方枚举>` `--country`（默认 US）`--date-range 1DAY\|7DAY\|30DAY\|90DAY`（默认 7DAY）；**发布用表格里 `trendingSongClipId`/`fullSongClipId` 列，不是 `commercialMusicId`** |
+| `haina tt music trending --account <id>` | GET /v1/tiktok/v1.3/discovery/cml/trending_list | account | CML 热门商用音乐选曲（≤100 条）。`--genre <官方枚举>` `--country`（默认 US）`--date-range 1DAY\|7DAY\|30DAY\|90DAY`（默认 7DAY）。**发布用的 songClipId 在嵌套对象里**：`data.list[].trendingSongClip.songClipId`（近 30 天最热剪辑）或 `data.list[].fullDurationSongClip.songClipId`（完整曲目，**可为空对象 `{}`**——空时只能用 trendingSongClip）；TTY 表格的 `trendingSongClipId`/`fullSongClipId` 两列是它们的 flatten 展示。顶层 `duration` 对剪辑曲目可能为 0，真实时长看 clip 对象的 `duration`。**不是 `commercialMusicId`**（那是曲目 id，仅 `tt music trending-videos` 用） |
 | `haina tt music trending-videos --account <id> --commercial-music-id <id>` | GET /v1/tiktok/v1.3/discovery/cml/video_list | account + commercial-music-id | 曲目关联热门视频 Top 20（选曲参考）；`--country`（默认 US） |
 | `haina tts video publish` | POST /v1/publish/tts | `--file-id` `--account-id` `--product-id` `--title`（**官方必填**，缺省官方报 3001） | `--product-title` `--cover-uri` `--cover-timestamp-ms` `--music-id` `--ai-generated` `--wait` |
 | `haina tt video publish-status --publish-id <id>` | GET /v1/tiktok/v1.3/business/publish/status | --tt + publishId（即发布响应的 shareId；`--share-id` 为兼容别名） | 与 --tts 互斥；命中发布记录即自动回写 |
@@ -63,7 +63,7 @@
 | `haina tt hashtag suggest --account <id> --keyword <kw>` | GET /v1/tiktok/v1.3/business/hashtag/suggestion | account + keyword | `--language`（36 枚举，缺省 en）。话题推荐，caption 写作辅助（返回 name + viewCount） |
 | `haina tt location search --account <id> --query <q>` | GET /v1/tiktok/v1.3/business/publish/location | account + query（≤100 字符） | 地域标签搜索，拿 locationId/locationName 供 tt photo publish 挂地点 |
 
-`--privacy-level` 四档（大小写不敏感）：`PUBLIC_TO_EVERYONE` / `MUTUAL_FOLLOW_FRIENDS` / `FOLLOWER_OF_CREATOR` / `SELF_ONLY`。发布前可用 `insights video-settings` 查该账号可用档位与时长上限。
+`--privacy-level` 四档（大小写不敏感）：`PUBLIC_TO_EVERYONE` / `MUTUAL_FOLLOW_FRIENDS` / `FOLLOWER_OF_CREATOR` / `SELF_ONLY`。发布前可用 `tt insight video-settings` 查该账号可用档位与时长上限。
 
 ## 评论管理（tt comment，账号引用的 video-id = 官方 video_id = 发布记录的 postId）
 

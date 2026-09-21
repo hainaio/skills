@@ -49,7 +49,9 @@ seats list（拿 businessId）→ videos upload（拿 videoUrl，7 天有效）�
 
 ```bash
 haina tt music trending --account <账号> [--genre POP] [--country US] [--date-range 7DAY]
-# → 表格里 trendingSongClipId / fullSongClipId 列才是发布用的 --music-id
+# → TTY 表格的 trendingSongClipId / fullSongClipId 列即可用；
+#   --json 时取嵌套字段：data.list[].trendingSongClip.songClipId（近 30 天最热剪辑）
+#   或 data.list[].fullDurationSongClip.songClipId（完整曲目；可为空对象 {}，空时用前者）
 haina tt video publish --video-url <url> --account <账号> --music-id <songClipId> --music-volume 50 --original-sound-volume 100 --wait
 ```
 
@@ -113,9 +115,9 @@ submitted → publish_processing（含 PROCESSING_DOWNLOAD=URL 拉取中）
 
 ## BGM：CML 商用音乐库（视频帖 / 图片帖）
 
-- **选曲**：`GET /v1/tiktok/v1.3/discovery/cml/trending_list`（CLI `discovery music`）拿热门曲目；发布接口的 `musicSoundId` 要传响应里的 **`trendingSongClip.songClipId`（近 30 天最热剪辑）或 `fullDurationSongClip.songClipId`（完整曲目）**——**不是** `commercialMusicId`（曲目 id，仅 `discovery music-videos` 查关联热门视频用）。
+- **选曲**：`GET /v1/tiktok/v1.3/discovery/cml/trending_list`（CLI `tt music trending`）拿热门曲目；发布接口的 `musicSoundId` 要传响应里**嵌套对象**的 **`trendingSongClip.songClipId`（近 30 天最热剪辑）或 `fullDurationSongClip.songClipId`（完整曲目，可为空对象 `{}`，空时用前者）**——**不是** `commercialMusicId`（曲目 id，仅 `tt music trending-videos` 查关联热门视频用）。曲目顶层 `duration` 对剪辑曲目可能为 0，真实时长看 clip 对象的 `duration`。
 - **音量默认坑**：官方 API 两个音量字段默认都是 **0（静音）**，App 内默认是 50。本平台对齐 App：传了 `musicSoundId` 但未显式给音量时，自动补 `musicSoundVolume=50` + `videoOriginalSoundVolume=50`；**显式传 0 以你为准**（真要静音就这么传）。要保留视频原声（口播人声）必须保证 `videoOriginalSoundVolume > 0`。
-- **与 TikTok Shop 挂车 `musicId` 语义不同**：TikTok Shop 电商授权音乐（`music search` 命令）是**完全覆盖原声**，不是混音；CML 是混音（音乐音量 + 原声音量两个滑杆）。两个库不通用，别混传。
+- **与 TikTok Shop 挂车 `musicId` 语义不同**：TikTok Shop 电商授权音乐（`tts music search` 命令）是**完全覆盖原声**，不是混音；CML 是混音（音乐音量 + 原声音量两个滑杆）。两个库不通用，别混传。
 - **CML ≠ App 流行曲库**：热门版权流行歌不对 Business 账号开放（App 内也一样）。要流行歌只能发草稿（`--draft`）后在 App 内手动加。
 - **时间点**：`musicSoundStart` / `musicSoundEnd` 毫秒；`musicSoundEnd` 缺省 = 视频时长（10s 音乐配 2s 视频只取前 2s）。
 - **图片帖**：`--auto-add-music`（自动配乐）与 `--music-id`（指定曲目）皆可。
