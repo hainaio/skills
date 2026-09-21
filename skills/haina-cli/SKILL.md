@@ -3,7 +3,7 @@ name: haina-cli
 description: 通过 HAiNA CLI 发布视频/图片帖到 TikTok / TikTok Shop（挂车带货）、管理评论（回复/点赞/隐藏）、收发私信与自动消息、查数据洞察、接事件推送、查询坐席与商品、TikTok Shop 预审。Use when the user wants to upload or publish videos/photo posts to TikTok / TikTok Shop, manage comments (reply/like/hide), send direct messages or auto-messages, check insights/analytics, receive event webhooks, query seats or shoppable products, run TikTok Shop precheck, upload covers, search music, or check publish status via the HAiNA CLI API platform.
 metadata:
   author: beervid
-  version: "0.10.1"
+  version: "0.10.2"
 ---
 
 # HAiNA CLI 视频发布

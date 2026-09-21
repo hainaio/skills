@@ -51,6 +51,7 @@ seats list（拿 creatorUserOpenId）→ videos upload --library tts（拿一次
 - 翻页只认 `nextPageToken`（为 null = 没有下一页）；**勿按 `totalCount` 推算页数**。
 - 数据有 60s 短缓存；`--fresh` 穿透缓存直取官方。
 - 选品硬要求：`reviewStatus=APPROVED` 且有货；商品需与视频内容相关（官方会校验相关性）。
+- **前置条件（实测发现）**：挂车账号需在 TikTok Shop 后台配置「选区（selection region）」——未配置时 `shop` 面报 `3001 invalid params`、`showcase` 面报官方明确原因（Operation Not Allowed: no selection region）。这是账号配置项，去卖家后台配置后重试即可（LOCAL 型账号常见）。
 
 ## 预审（precheck，可选但建议）
 
