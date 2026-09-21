@@ -48,7 +48,7 @@ seats list（拿 businessId）→ videos upload（拿 videoUrl，7 天有效）�
 
 ## 数据回收（stats）
 
-走「数据洞察」面的官方镜像路由（与官方接口路由一致，字段更多）：
+走「数据洞察」面（与官方接口字段口径一致，指标更全）：
 
 ```bash
 haina insights videos --account <accountId> --video-ids <postId> --json
@@ -58,6 +58,46 @@ haina insights videos --account <accountId> --video-ids <postId> --json
 
 - ⚠️ 旧命令 `haina publish stats <postId>` 将要废弃（1.6.x 移除），勿再使用。
 - 时机坑：postId 官方生成有约 3 分钟延迟——`publish records` 里 `postId=null` 期间查不到属预期；等 status 轮询拿到 postId 再查。
+
+## 发布通用规则（URL 验证 / 隐私档位 / 草稿 / 品牌标记）
+
+## URL 所有权验证（2023-11-16 起强制）
+
+- 未验证域名的 `video_url` / `photo_images` **会被拒发**。
+- 本平台视频库返回的 URL 已完成验证，直接使用无风险。
+- 自有 OSS/域名：需先在 TikTok 侧完成 URL 资源所有权验证（或联系管理员走 `/business/property/list/` 确认）。
+- 测试可用官方免验证视频 URL：`https://sf16-va.tiktokcdn.com/obj/eden-va2/uvpapzpbxjH-aulauvJ-WV[[/ljhwZthlaukjlkulzlp/3min.mp4`。
+
+## 隐私档位
+
+- 图片帖 `privacy_level` **必填**；视频发布为公开帖（v1.3 无该参数）。
+- 可用档位以账号为准：`PUBLIC_TO_EVERYONE` / `MUTUAL_FOLLOW_FRIENDS` / `FOLLOWER_OF_CREATOR`（私密账号）/ `SELF_ONLY`，用 `haina insights video-settings --account <账号>` 查询。
+- `disable_comment/duet/stitch` 受账号设置约束（账号级禁用时只能传 true）。
+
+## 草稿
+
+- `--draft`（视频 `upload_to_draft` / 图片 `is_draft`）：进 TikTok App 收件箱，不直接发布；需坐席授权含 `video.upload` scope。
+- 草稿终态 = `publish_draft_inbox`（`SEND_TO_USER_INBOX` 归一）。
+- 草稿模式下 post_info 其他字段全部被官方忽略。
+
+## 发布状态流转
+
+```
+submitted → publish_processing（含 PROCESSING_DOWNLOAD=URL 拉取中）
+  → publish_complete（附 postId；postId 生成延迟约 3 分钟）
+  → publish_failed（附官方 reason，如 frame_rate_check_failed）
+  → publish_draft_inbox（草稿）
+```
+
+## 品牌与内容标记
+
+- `is_brand_organic`（推广自己品牌）与 `is_branded_content`（付费合作）同传 true 时后者优先。
+- `is_ai_generated` 标记后不可更改（不违反社区守则前提下不影响投放）。
+- `is_ads_only` 发布为"仅广告展示"视频（不出现在主页，可经 insights `ad_post_only` 过滤查询）。
+
+## 发布后画质
+
+官方转码可能降低分辨率/比特率（取决于播放设备与网络），属正常现象。
 
 ## 常见失败模式
 

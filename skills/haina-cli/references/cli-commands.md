@@ -116,10 +116,7 @@
 | `haina events redeliver <id> [--endpoint-id <e>]` | POST /v1/events/{id}/redeliver | id（事件 ID） | `--endpoint-id` 定向单个端点；缺省投向当前活跃且订阅匹配的全部端点。返回 data.redelivered = 新投递条数 |
 | `haina listen [--events <t,…>] [--forward-to <url>] [--max-events <n>]` | GET /v1/events/stream（SSE 长连） | — | **无公网环境的收事件方式**：本地出站长连，事件实时推下（stdout 每事件一行 JSON，与 push 投递体同形状）；`--forward-to` 同时 POST 转发到本地 handler（loopback 调试不带签名头）；断线自动重连（Last-Event-ID 续传）；只推连接后的新事件，断开期间用 `events list` 补拉。Ctrl+C 退出 |
 
-事件类型：`message.received` / `message.sent` / `comment.created` / `comment.deleted` / `comment.visibility_changed` / `publish.completed` / `publish.failed` / `publish.live` / `publish.unpublished`（未知官方事件以 `tiktok.<原名>` 透传）。
-推送语义：at-least-once（按事件 `id` 幂等去重），失败按 1m/5m/15m/1h/3h/8h/24h 退避重试，8 次进死信。
-两种收法：**webhook push**（需公网 URL，生产推荐）与 **`haina listen`**（SSE 长连，无公网可用，开发/本机场景）。
-**做「收到评论自动回复」类机器人时**：只订 `tiktok.comment.created`；只回复 `parent_comment_id == 0`（数字 0）的顶层评论（自己的回复 parent 必非 0，否则机器人会自回复死循环——事件里没有 owner 字段）。
+事件类型、推送语义（at-least-once/幂等/退避）、验签代码与「收到评论自动回复」机器人的防自回环军规，见 `events.md`（规则单源，勿凭记忆实现）。
 
 ## --wait 轮询（publish / precheck submit）
 

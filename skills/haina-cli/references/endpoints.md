@@ -57,13 +57,13 @@
 
 ### GET /v1/tiktok/v1.3/business/hashtag/suggestion
 
-话题推荐（官方镜像：GET /open_api/v1.3/business/hashtag/suggestion/）
+话题推荐（对应官方 GET /open_api/v1.3/business/hashtag/suggestion/）
 
 - 必填参数：account（query）、keyword（query）
 
 ### GET /v1/tiktok/v1.3/business/publish/location
 
-地域标签搜索（官方镜像：GET /open_api/v1.3/business/publish/location/）
+地域标签搜索（对应官方 GET /open_api/v1.3/business/publish/location/）
 
 - 必填参数：account（query）、query（query）
 - ⚠ 发布图片帖前挂地域标签用：按 `query`（≤100 字符）返回 ≤20 个可用地点，`locationId` + `locationName` 配对用于发布入参
@@ -86,7 +86,7 @@ TT 视频发布·新版（默认推荐；对齐官方 POST /open_api/v1.3/busine
 
 ### GET /v1/tiktok/v1.3/business/publish/status
 
-TT 发布状态刷新（官方镜像：GET /open_api/v1.3/business/publish/status/）
+TT 发布状态刷新（对应官方 GET /open_api/v1.3/business/publish/status/）
 
 - 必填参数：publishId（query）
 - ⚠ `publishId` 命中你的发布记录时（常规轮询场景）：只需传 `publishId`——平台自动完成归属校验、拉取官方最新状态并**回写你的发布记录**；响应为归一化结构 `{ publishId, shareId, status, postId, tiktok }`（`status` 已归一小写，`tiktok` 为官方原始响应）
@@ -102,7 +102,7 @@ TT 发布状态刷新（官方镜像：GET /open_api/v1.3/business/publish/statu
 TT 发布状态刷新（每次调用即拉取官方最新状态并同步到你的发布记录）
 
 - 必填参数：shareId（query）
-- ⚠ **将要废弃**（1.6.x 移除，移除前功能不受影响）：请迁移到官方镜像路径 `GET /v1/tiktok/v1.3/business/publish/status`（`publishId` 传本接口的 `shareId` 即可——命中发布记录时行为与本接口完全一致：归属校验 + 回写记录 + 归一化响应）
+- ⚠ **将要废弃**（1.6.x 移除，移除前功能不受影响）：请迁移到新版端点 `GET /v1/tiktok/v1.3/business/publish/status`（`publishId` 传本接口的 `shareId` 即可——命中发布记录时行为与本接口完全一致：归属校验 + 回写记录 + 归一化响应）
 - ⚠ **新旧两版发布共用的轮询入口**（平台按发布记录自动识别来源通道，无需关心视频是从哪个版本发布的）——只需 `shareId`，归属校验与记录回写自动完成
 - ⚠ 建议每 5–10 秒轮询、最多约 30 次；到达终态（`publish_complete` / `publish_failed` / `beervid_error`）即停止
 - ⚠ `postId`（TikTok item_id）由官方数据处理生成，发布成功后可能延迟约 3 分钟才返回——刚发布成功未拿到时稍后重查
@@ -215,27 +215,27 @@ TTS 发布状态刷新（每次调用即拉取官方最新状态并同步到你�
 
 ### GET /v1/tiktok/v1.3/business/get
 
-账号概览（官方镜像：GET /open_api/v1.3/business/get/）
+账号概览（对应官方 GET /open_api/v1.3/business/get/）
 
 - 必填参数：account（query）
 - ⚠ 给 `startDate` / `endDate`（YYYY-MM-DD，UTC，回溯 ≤60 天）时自动追加 `metrics` 日序列
 
 ### GET /v1/tiktok/v1.3/business/video/list
 
-视频列表+指标（官方镜像：GET /open_api/v1.3/business/video/list/）
+视频列表+指标（对应官方 GET /open_api/v1.3/business/video/list/）
 
 - 必填参数：account（query）
 - ⚠ `fields` 逗号分隔透传官方字段集（缺省为核心指标集）；字段权限：`video.list` 基础字段 / `video.insights` 深度指标；指标类数据延迟 T+24~48 小时
 
 ### GET /v1/tiktok/v1.3/business/benchmark
 
-行业基准（官方镜像：GET /open_api/v1.3/business/benchmark/）
+行业基准（对应官方 GET /open_api/v1.3/business/benchmark/）
 
 - 必填参数：account（query）、category（query）
 
 ### GET /v1/tiktok/v1.3/business/video/settings
 
-发布隐私/时长设置（官方镜像：GET /open_api/v1.3/business/video/settings/）
+发布隐私/时长设置（对应官方 GET /open_api/v1.3/business/video/settings/）
 
 - 必填参数：account（query）
 - ⚠ 发布前自检：返回 `privacy_level_options`（可用隐私档位）/ `comment_disabled` / `duet_disabled` / `stitch_disabled` / `max_video_post_duration_sec`（账号最大发布时长，超时长发布必失败）
@@ -246,7 +246,7 @@ TTS 发布状态刷新（每次调用即拉取官方最新状态并同步到你�
 
 ### GET /v1/tiktok/v1.3/business/comment/list
 
-评论列表（官方镜像：GET /open_api/v1.3/business/comment/list/）
+评论列表（对应官方 GET /open_api/v1.3/business/comment/list/）
 
 - 必填参数：account（query）、videoId（query）
 - ⚠ `account` 取代 `business_id`：传 username 或 businessId 皆可，归属与凭据由平台自动关联
@@ -255,39 +255,39 @@ TTS 发布状态刷新（每次调用即拉取官方最新状态并同步到你�
 
 ### GET /v1/tiktok/v1.3/business/comment/reply/list
 
-评论的回复列表（官方镜像：GET /open_api/v1.3/business/comment/reply/list/）
+评论的回复列表（对应官方 GET /open_api/v1.3/business/comment/reply/list/）
 
 - 必填参数：account（query）、videoId（query）、commentId（query）
 - ⚠ 注意官方限制：不支持隐藏评论（HIDDEN）的回复列表
 
 ### POST /v1/tiktok/v1.3/business/comment/create
 
-发顶层评论（官方镜像：POST /open_api/v1.3/business/comment/create/）
+发顶层评论（对应官方 POST /open_api/v1.3/business/comment/create/）
 
 - 必填 body：account、videoId、text
 - ⚠ text ≤1200 字符
 
 ### POST /v1/tiktok/v1.3/business/comment/reply/create
 
-回复评论（官方镜像：POST /open_api/v1.3/business/comment/reply/create/）
+回复评论（对应官方 POST /open_api/v1.3/business/comment/reply/create/）
 
 - 必填 body：account、videoId、commentId、text
 
 ### POST /v1/tiktok/v1.3/business/comment/like
 
-点赞/取消点赞（官方镜像：POST /open_api/v1.3/business/comment/like/）
+点赞/取消点赞（对应官方 POST /open_api/v1.3/business/comment/like/）
 
 - 必填 body：account、commentId、action
 
 ### POST /v1/tiktok/v1.3/business/comment/hide
 
-隐藏/恢复评论（官方镜像：POST /open_api/v1.3/business/comment/hide/）
+隐藏/恢复评论（对应官方 POST /open_api/v1.3/business/comment/hide/）
 
 - 必填 body：account、videoId、commentId、action
 
 ### POST /v1/tiktok/v1.3/business/comment/delete
 
-删除评论（官方镜像：POST /open_api/v1.3/business/comment/delete/）
+删除评论（对应官方 POST /open_api/v1.3/business/comment/delete/）
 
 - 必填 body：account、commentId
 - ⚠ 官方约束：仅自己账号发出的评论可删；他人评论只能隐藏（官方报错透传）
@@ -298,7 +298,7 @@ TTS 发布状态刷新（每次调用即拉取官方最新状态并同步到你�
 
 ### GET /v1/tiktok/v1.3/business/message/conversation/list
 
-私信会话列表（官方镜像：GET /open_api/v1.3/business/message/conversation/list/）
+私信会话列表（对应官方 GET /open_api/v1.3/business/message/conversation/list/）
 
 - 必填参数：account（query）、conversationType（query）
 - ⚠ `conversationType` 必填：`SINGLE` = 已建立会话（已回复过）；`STRANGER` = 陌生人消息请求（未回复）
@@ -307,13 +307,13 @@ TTS 发布状态刷新（每次调用即拉取官方最新状态并同步到你�
 
 ### GET /v1/tiktok/v1.3/business/message/content/list
 
-会话消息列表（官方镜像：GET /open_api/v1.3/business/message/content/list/）
+会话消息列表（对应官方 GET /open_api/v1.3/business/message/content/list/）
 
 - 必填参数：account（query）、conversationId（query）
 
 ### POST /v1/tiktok/v1.3/business/message/send
 
-发送私信（官方镜像：POST /open_api/v1.3/business/message/send/）
+发送私信（对应官方 POST /open_api/v1.3/business/message/send/）
 
 - 必填 body：account、conversationId
 - ⚠ `text`：文本（≤6000 字符）
@@ -321,21 +321,21 @@ TTS 发布状态刷新（每次调用即拉取官方最新状态并同步到你�
 
 ### POST /v1/tiktok/v1.3/business/message/media/upload
 
-私信图片上传（官方镜像：POST /open_api/v1.3/business/message/media/upload/）
+私信图片上传（对应官方 POST /open_api/v1.3/business/message/media/upload/）
 
 - 必填 body（multipart）：account、file
 - ⚠ 文件约束：JPG/PNG，≤3MB
 
 ### POST /v1/tiktok/v1.3/business/message/media/download
 
-私信媒体下载地址（官方镜像：POST /open_api/v1.3/business/message/media/download/）
+私信媒体下载地址（对应官方 POST /open_api/v1.3/business/message/media/download/）
 
 - 必填 body：account、conversationId、messageId、mediaId
 - ⚠ 下载该 URL 必须带请求头 `x-user: <账号 access token>`——access token 不出平台服务端，因此本端点只负责返回 URL，实际下载需经服务端转发（代理端点后续按需开放）
 
 ### GET /v1/tiktok/v1.3/business/message/capabilities/get
 
-会话能力查询（官方镜像：GET /open_api/v1.3/business/message/capabilities/get/）
+会话能力查询（对应官方 GET /open_api/v1.3/business/message/capabilities/get/）
 
 - 必填参数：account（query）、conversationId（query）、conversationType（query）
 
@@ -345,14 +345,14 @@ TTS 发布状态刷新（每次调用即拉取官方最新状态并同步到你�
 
 ### POST /v1/tiktok/v1.3/business/message/auto_message/get
 
-自动消息查询（官方镜像：POST /open_api/v1.3/business/message/auto_message/get/）
+自动消息查询（对应官方 POST /open_api/v1.3/business/message/auto_message/get/）
 
 - 必填 body：account、autoMessageType
 - ⚠ 类型上限：`WELCOME_MESSAGE` ≤1 条、`SUGGESTED_QUESTION` ≤3 条、`CHAT_PROMPT` ≤6 条
 
 ### POST /v1/tiktok/v1.3/business/message/auto_message/create
 
-创建自动消息（官方镜像：POST /open_api/v1.3/business/message/auto_message/create/）
+创建自动消息（对应官方 POST /open_api/v1.3/business/message/auto_message/create/）
 
 - 必填 body：account、autoMessageType
 - ⚠ 条件必填按类型：`WELCOME_MESSAGE` → `content`；`SUGGESTED_QUESTION` → `question` + `answer`；`CHAT_PROMPT` → `title` + `content`
@@ -360,7 +360,7 @@ TTS 发布状态刷新（每次调用即拉取官方最新状态并同步到你�
 
 ### POST /v1/tiktok/v1.3/business/message/auto_message/update
 
-更新自动消息（官方镜像：POST /open_api/v1.3/business/message/auto_message/update/）
+更新自动消息（对应官方 POST /open_api/v1.3/business/message/auto_message/update/）
 
 - 必填 body：account、autoMessageId、autoMessageType
 - ⚠ 条件必填同 create
@@ -368,20 +368,20 @@ TTS 发布状态刷新（每次调用即拉取官方最新状态并同步到你�
 
 ### POST /v1/tiktok/v1.3/business/message/auto_message/delete
 
-删除自动消息（官方镜像：POST /open_api/v1.3/business/message/auto_message/delete/）
+删除自动消息（对应官方 POST /open_api/v1.3/business/message/auto_message/delete/）
 
 - 必填 body：account、autoMessageId、autoMessageType
 - ⚠ 仅 SUGGESTED_QUESTION / CHAT_PROMPT 可删；WELCOME_MESSAGE 官方不可删除（本地拦截 2001），改用 status/update operationStatus=DISABLE 关闭
 
 ### POST /v1/tiktok/v1.3/business/message/auto_message/sort
 
-自动消息排序（官方镜像：POST /open_api/v1.3/business/message/auto_message/sort/）
+自动消息排序（对应官方 POST /open_api/v1.3/business/message/auto_message/sort/）
 
 - 必填 body：account、autoMessageIds
 
 ### POST /v1/tiktok/v1.3/business/message/auto_message/status/update
 
-自动消息整类开关（官方镜像：POST /open_api/v1.3/business/message/auto_message/status/update/）
+自动消息整类开关（对应官方 POST /open_api/v1.3/business/message/auto_message/status/update/）
 
 - 必填 body：account、autoMessageType、operationStatus
 - ⚠ WELCOME_MESSAGE 的唯一关闭方式（不可删除）

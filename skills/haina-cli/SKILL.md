@@ -111,8 +111,11 @@ haina webhooks create --url https://<你的回调> --events "tiktok.*" --json   
 
 **深入细节按需读 references/**：
 - `references/cli-commands.md` — 全部命令与 flag 完整参考
-- `references/tt-publish.md` — TT 视频规格/官方限频/字段语义/数据回收
+- `references/tt-publish.md` — TT 视频规格/官方限频/字段语义/URL 验证/草稿/数据回收
 - `references/tts-publish.md` — fileId 规则/商品分页/预审双 check 读法/封面与音乐
+- `references/tiktok-engagement.md` — 评论与私信规则（权限门槛/发送窗口/自动消息审核状态机）
+- `references/tiktok-insights.md` — 数据洞察规则（T+24~48h 延迟/100 粉门槛/字段 scope 分级）
+- `references/events.md` — 事件推送（订阅/验签代码/at-least-once 消费语义/防自回环军规）
 - `references/errors.md` — 错误码 × 退出码 × 处置动作全表
 - `references/concepts.md` — 平台概念与限制全集（有效期/配额/限流）
 
