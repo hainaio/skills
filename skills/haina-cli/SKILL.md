@@ -1,9 +1,9 @@
 ---
 name: haina-cli
-description: 通过 HAiNA CLI 发布视频到 TikTok / TikTok Shop（挂车带货）、查询坐席与商品、跟踪发布状态、TTS 预审。Use when the user wants to upload or publish videos to TikTok / TikTok Shop, query seats or shoppable products, run TTS precheck, upload covers, search music, or check publish status via the HAiNA CLI API platform.
+description: 通过 HAiNA CLI 发布视频/图片帖到 TikTok / TikTok Shop（挂车带货）、管理评论（回复/点赞/隐藏）、收发私信与自动消息、查数据洞察、接事件推送、查询坐席与商品、TTS 预审。Use when the user wants to upload or publish videos/photo posts to TikTok / TikTok Shop, manage comments (reply/like/hide), send direct messages or auto-messages, check insights/analytics, receive event webhooks, query seats or shoppable products, run TTS precheck, upload covers, search music, or check publish status via the HAiNA CLI API platform.
 metadata:
   author: beervid
-  version: "0.8.0"
+  version: "0.9.0"
 ---
 
 # HAiNA CLI 视频发布
@@ -45,6 +45,7 @@ haina version                                # 核对能力版本（见下「版
 ## 3. 平台心智模型（先读，再动手）
 
 - **坐席（Seat）**：1 个 TikTok 账号 = 1 坐席；一个坐席可绑两种能力。**TT 能力的账号 ID 是 businessId；TTS 能力是 creatorUserOpenId**——两个 ID 都从 `haina seats list --json` 拿，别混用。
+- **账号引用 flag**：新命令（comments/messages/insights/publish photo 等）一律 `--account`（username 或 businessId 均可）；存量命令（products/publish tts/precheck/photos/music）用 `--account-id`。
 - **视频库分两库**：TT 库上传返回 `videoUrl`（公网 URL，**7 天有效**，发布用）；TTS 库上传返回 `fileId`（**一次性消耗**，发布/预审用）。
 - **账号健康**：坐席 `authStatus=expired` 说明授权失效 → 引导用户去控制台坐席页重新绑定，不要反复重试发布。
 
@@ -67,6 +68,46 @@ haina products query --account-id <id> --json                  # 拿可挂车 pr
 haina precheck submit --file-id <f> --account-id <id> --product-id <p> --product-title <锚点> --wait --json  # 可选但建议
 haina publish tts --file-id <f> --account-id <id> --product-id <p> --product-title <锚点> --wait --json
 ```
+
+### 图片帖（TikTok Photo Post，1-35 张公网 https 图）
+
+```bash
+haina publish locations --account <id> --query "New York" --json   # 可选：拿 locationId 挂地点
+haina publish photo --account <id> --photo-urls "https://…/1.jpg,https://…/2.jpg" \
+  --privacy-level PUBLIC_TO_EVERYONE --caption "文案 #话题" --wait --json
+```
+
+### 评论管理（回复/点赞/隐藏/删除）
+
+```bash
+haina comments list --account <id> --video-id <postId> --json
+haina comments reply --account <id> --video-id <postId> --comment-id <cid> --text "回复内容" --json
+haina comments like --account <id> --comment-id <cid> --action LIKE --json
+```
+
+### 私信与自动消息
+
+```bash
+haina messages conversations --account <id> --type SINGLE --json              # 会话列表
+haina messages send --account <id> --conversation-id <cid> --text "你好" --json
+haina messages auto get --account <id> --type WELCOME_MESSAGE --json          # 自动消息（欢迎语/建议问题/聊天提示词）
+```
+
+### 数据洞察（发布效果回收）
+
+```bash
+haina insights account --account <id> --json                       # 账号概览
+haina insights videos --account <id> --video-ids <postId> --json   # 视频指标定点查（publish stats 的替代）
+```
+
+### 事件推送（评论/私信/发布状态实时通知）
+
+```bash
+haina listen --events "tiktok.*" --json        # 本机/开发：SSE 长连收事件，无需公网
+haina webhooks create --url https://<你的回调> --events "tiktok.*" --json   # 生产：push 到自有端点（secret 只返回一次，妥善保存）
+```
+
+做「收到评论自动回复」类机器人前，必读 `references/cli-commands.md` 事件节的防自回复死循环要点。
 
 **深入细节按需读 references/**：
 - `references/cli-commands.md` — 全部命令与 flag 完整参考
